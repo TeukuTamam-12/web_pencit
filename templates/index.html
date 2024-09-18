@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Gambar dan Pilih Proses</title>
+    <!-- Link ke CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="title">Upload Gambar dan Pilih Proses</h1>
+        <form action="/upload" method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+            <div class="form-group">
+                <label for="fileInput" class="form-label">Pilih Gambar</label>
+                <input type="file" name="file" id="fileInput" accept="image/*" required>
+            </div>
+
+            <div class="form-group">
+                <label for="process_type">Pilih Tipe Proses:</label>
+                <select name="process_type" id="process_type">
+                    <option value="rgb">Histogram RGB</option>
+                    <option value="grayscale">Histogram Grayscale</option>
+                    <option value="face_detection">Deteksi Wajah</option>
+                    <option value="blur_faces">Blur Wajah</option>
+                    <option value="edge_detection">Deteksi Tepi</option> <!-- Opsi untuk deteksi tepi -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn">Upload dan Proses</button>
+            </div>
+        </form>
+
+        <div id="loadingMessage" class="loading">
+            <p>Memproses gambar, mohon tunggu...</p>
+        </div>
+    </div>
+
+    <!-- Link ke JavaScript -->
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
+</body>
+</html>

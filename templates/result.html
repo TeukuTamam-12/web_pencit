@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Proses Gambar</title>
+    <!-- Link ke CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="title">Hasil {{ process_type | capitalize }}</h1>
+
+        <div class="result-container">
+            <div class="image-section">
+                <p>Gambar asli:</p>
+                <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Gambar Asli" class="image-preview">
+            </div>
+
+            <div class="histogram-section">
+                <p>Hasil:</p>
+                {% if process_type == 'grayscale' %}
+                <img src="{{ url_for('static', filename='gray_histo.jpg') }}" alt="Histogram Grayscale" class="image-histogram">
+                <p>Gambar Grayscale:</p>
+                <img src="{{ url_for('static', filename='gray_image.jpg') }}" alt="Gambar Grayscale" class="image-preview">
+                {% elif process_type == 'rgb' %}
+                <img src="{{ url_for('static', filename='rgb_histo.jpg') }}" alt="Histogram RGB" class="image-histogram">
+                {% elif process_type == 'face_detection' %}
+                <img src="{{ url_for('static', filename='face_detected.jpg') }}" alt="Deteksi Wajah" class="image-preview">
+                {% elif process_type == 'blur_faces' %}
+                <img src="{{ url_for('static', filename='blurred_faces.jpg') }}" alt="Blur Wajah" class="image-preview">
+                {% elif process_type == 'edge_detection' %}
+                <img src="{{ url_for('static', filename='edges_detected.jpg') }}" alt="Deteksi Tepi" class="image-preview"> <!-- Opsi baru untuk deteksi tepi -->
+                {% endif %}
+            </div>
+        </div>
+
+        <a href="/" class="btn">Kembali ke halaman upload</a>
+    </div>
+
+    <!-- Link ke JavaScript -->
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
+</body>
+</html>
