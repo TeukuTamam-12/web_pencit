@@ -31,7 +31,9 @@
                 {% elif process_type == 'blur_faces' %}
                 <img src="{{ url_for('static', filename='blurred_faces.jpg') }}" alt="Blur Wajah" class="image-preview">
                 {% elif process_type == 'edge_detection' %}
-                <img src="{{ url_for('static', filename='edges_detected.jpg') }}" alt="Deteksi Tepi" class="image-preview"> <!-- Opsi baru untuk deteksi tepi -->
+                <img src="{{ url_for('static', filename='edges_detected.jpg') }}" alt="Deteksi Tepi" class="image-preview">
+                {% elif process_type == 'change_background' %}
+                <img src="{{ url_for('static', filename='background_changed.jpg') }}" alt="Ganti Latar Belakang" class="image-preview"> <!-- Opsi baru untuk ganti background -->
                 {% endif %}
             </div>
         </div>

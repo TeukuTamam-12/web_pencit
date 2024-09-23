@@ -6,6 +6,16 @@
     <title>Upload Gambar dan Pilih Proses</title>
     <!-- Link ke CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        /* CSS untuk menyembunyikan pesan "Mohon Tunggu" secara default */
+        #loadingMessage {
+            display: none;
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
 
@@ -17,14 +27,20 @@
                 <input type="file" name="file" id="fileInput" accept="image/*" required>
             </div>
 
+            <div class="form-group" id="backgroundInputContainer">
+                <label for="backgroundInput" class="form-label">Pilih Latar Belakang</label>
+                <input type="file" name="background" id="backgroundInput" accept="image/*">
+            </div>
+
             <div class="form-group">
                 <label for="process_type">Pilih Tipe Proses:</label>
-                <select name="process_type" id="process_type">
+                <select name="process_type" id="process_type" onchange="toggleBackgroundInput()">
                     <option value="rgb">Histogram RGB</option>
                     <option value="grayscale">Histogram Grayscale</option>
                     <option value="face_detection">Deteksi Wajah</option>
                     <option value="blur_faces">Blur Wajah</option>
-                    <option value="edge_detection">Deteksi Tepi</option> <!-- Opsi untuk deteksi tepi -->
+                    <option value="edge_detection">Deteksi Tepi</option>
+                    <option value="change_background">Ganti Latar Belakang</option>
                 </select>
             </div>
 
@@ -33,12 +49,13 @@
             </div>
         </form>
 
-        <div id="loadingMessage" class="loading">
-            <p>Memproses gambar, mohon tunggu...</p>
+        <!-- Pesan loading yang akan ditampilkan saat form disubmit -->
+        <div id="loadingMessage">
+            <p><strong>Mohon tunggu, gambar sedang diproses...</strong></p>
         </div>
     </div>
 
-    <!-- Link ke JavaScript -->
+    <!-- Link ke JavaScript file yang terpisah -->
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 
 </body>

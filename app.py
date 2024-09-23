@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os
 import cv2
-from werkzeug.utils import secure_filename
 import numpy as np
+from werkzeug.utils import secure_filename
 from matplotlib import pyplot as plt
 
 app = Flask(__name__)
@@ -14,25 +14,23 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Path untuk model DNN
 MODEL_PATH_FACE = 'static/models/res10_300x300_ssd_iter_140000.caffemodel'
 CONFIG_PATH_FACE = 'static/models/deploy.prototxt'
-MODEL_PATH_EDGE = 'static/models/hed_pretrained_bsds.caffemodel'
-CONFIG_PATH_EDGE = 'static/models/deploy1.prototxt'
 
 # Load DNN model
 net_face = cv2.dnn.readNetFromCaffe(CONFIG_PATH_FACE, MODEL_PATH_FACE)
-net_edge = cv2.dnn.readNetFromCaffe(CONFIG_PATH_EDGE, MODEL_PATH_EDGE)
 
 # Halaman utama untuk upload gambar
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Route untuk memproses upload dan generate histogram, deteksi wajah, blur wajah, atau deteksi tepi
+# Route untuk memproses upload dan generate histogram, deteksi wajah, blur wajah, deteksi tepi, atau ganti background
 @app.route('/upload', methods=['POST'])
 def upload_image():
     if 'file' not in request.files:
         return redirect(request.url)
 
     file = request.files['file']
+    background_file = request.files.get('background')  # Optional background file
     if file.filename == '':
         return redirect(request.url)
 
@@ -41,7 +39,15 @@ def upload_image():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # Pilih tipe proses dari form (RGB, Grayscale, Deteksi Wajah, Blur Wajah, atau Deteksi Tepi)
+        # Jika background file juga diupload, simpan di folder uploads
+        if background_file and background_file.filename != '':
+            background_filename = secure_filename(background_file.filename)
+            background_filepath = os.path.join(app.config['UPLOAD_FOLDER'], background_filename)
+            background_file.save(background_filepath)
+        else:
+            background_filepath = None
+
+        # Pilih tipe proses dari form (RGB, Grayscale, Deteksi Wajah, Blur Wajah, Deteksi Tepi, atau Ganti Background)
         process_type = request.form.get('process_type')
         if process_type == 'grayscale':
             generate_grayscale_histogram(filepath)
@@ -52,13 +58,17 @@ def upload_image():
         elif process_type == 'blur_faces':
             output_path = 'static/blurred_faces.jpg'
             blur_faces_dnn(filepath, output_path)
-        elif process_type == 'edge_detection':  # Opsi untuk deteksi tepi
+        elif process_type == 'edge_detection':
             output_path = 'static/edges_detected.jpg'
             edge_detection_dnn(filepath, output_path)
+        elif process_type == 'change_background' and background_filepath:
+            output_path = 'static/background_changed.jpg'
+            rect = (50, 50, 450, 290)  # Rect harus disesuaikan untuk setiap gambar
+            change_background_grabcut(filepath, background_filepath, rect, output_path)
 
         # Redirect untuk menampilkan hasil
         return render_template('result.html', image_file=filename, process_type=process_type)
-
+    
 # Fungsi untuk deteksi tepi (Edge Detection)
 def edge_detection_dnn(image_path, output_path):
     # Load the pre-trained model for HED (Holistically-Nested Edge Detection)
@@ -198,6 +208,36 @@ def blur_faces_dnn(image_path, output_path):
     # Save the output image with blurred faces
     cv2.imwrite(output_path, image)
     print(f"Blurred face image saved as {output_path}")
+
+def change_background_grabcut(image_path, background_path, rect, output_path):
+    # Load input image and background image
+    image = cv2.imread(image_path)
+    background = cv2.imread(background_path)
+
+    # Resize background to match input image size
+    image_height, image_width = image.shape[:2]
+    background = cv2.resize(background, (image_width, image_height))
+
+    # Initialize mask, bgdModel, and fgdModel for GrabCut
+    mask = np.zeros(image.shape[:2], np.uint8)
+    bgdModel = np.zeros((1, 65), np.float64)
+    fgdModel = np.zeros((1, 65), np.float64)
+
+    # Apply GrabCut algorithm
+    cv2.grabCut(image, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+
+    # Modify mask to extract the foreground
+    mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+    foreground = image * mask2[:, :, np.newaxis]
+
+    # Extract the background where the mask is 0
+    background_part = background * (1 - mask2[:, :, np.newaxis])
+
+    # Combine the foreground and new background
+    result = cv2.add(foreground, background_part)
+
+    # Save the resulting image
+    cv2.imwrite(output_path, result)
 
 if __name__ == "__main__":
     app.run(debug=True)
