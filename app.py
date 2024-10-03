@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
 from matplotlib import pyplot as plt
+from scipy.signal import convolve2d
 
 app = Flask(__name__)
 
@@ -65,6 +66,12 @@ def upload_image():
             output_path = 'static/background_changed.jpg'
             rect = (50, 50, 450, 290)  # Rect harus disesuaikan untuk setiap gambar
             change_background_grabcut(filepath, background_filepath, rect, output_path)
+        elif process_type == 'restore_image':
+            output_path = 'static/restored_image.jpg'
+            restore_image(filepath, output_path)
+        elif process_type == 'enhance_image':
+            output_path = 'static/enhanced_image.jpg'
+            enhance_image(filepath, output_path)
 
         # Redirect untuk menampilkan hasil
         return render_template('result.html', image_file=filename, process_type=process_type)
@@ -239,5 +246,55 @@ def change_background_grabcut(image_path, background_path, rect, output_path):
     # Save the resulting image
     cv2.imwrite(output_path, result)
 
+def restore_image(image_path, output_path, kernel_size=5):
+    # Baca citra menggunakan OpenCV
+    image = cv2.imread(image_path)
+    
+    # Dapatkan dimensi citra
+    (h, w) = image.shape[:2]
+    
+    # Konversi ke grayscale jika citra berwarna
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    
+    # Terapkan filter median untuk mengurangi noise
+    restored = cv2.medianBlur(gray, kernel_size)
+    
+    # Normalisasi citra hasil restorasi untuk visualisasi yang lebih baik
+    restored = cv2.normalize(restored, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Simpan citra hasil restorasi
+    cv2.imwrite(output_path, restored)
+    print(f"Citra hasil restorasi disimpan sebagai {output_path}")
+
+def enhance_image(image_path, output_path, kernel_size=5, sharpening_strength=1.0):
+    # Baca citra sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    
+    # Langkah 1: Deblurring menggunakan filter Wiener
+    psf = np.ones((kernel_size, kernel_size)) / (kernel_size * kernel_size)
+    deblurred = cv2.filter2D(image, -1, psf)
+    noise = 10
+    deblurred = cv2.addWeighted(image, 1.0 + sharpening_strength, deblurred, -sharpening_strength, noise)
+    
+    # Langkah 2: Peningkatan ketajaman menggunakan Unsharp Masking
+    gaussian = cv2.GaussianBlur(deblurred, (0, 0), 2.0)
+    sharpened = cv2.addWeighted(deblurred, 1 + sharpening_strength, gaussian, -sharpening_strength, 0)
+    
+    # Langkah 3: Peningkatan kontras menggunakan CLAHE
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    enhanced = clahe.apply(sharpened)
+    
+    # Langkah 4: Reduksi noise menggunakan Non-local Means Denoising
+    enhanced = cv2.fastNlMeansDenoising(enhanced, None, 10, 7, 21)
+    
+    # Normalisasi hasil akhir
+    enhanced = cv2.normalize(enhanced, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Simpan citra hasil enhancement
+    cv2.imwrite(output_path, enhanced)
+    print(f"Citra hasil enhancement disimpan sebagai {output_path}")
 if __name__ == "__main__":
     app.run(debug=True)

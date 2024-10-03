@@ -34,6 +34,10 @@
                 <img src="{{ url_for('static', filename='edges_detected.jpg') }}" alt="Deteksi Tepi" class="image-preview">
                 {% elif process_type == 'change_background' %}
                 <img src="{{ url_for('static', filename='background_changed.jpg') }}" alt="Ganti Latar Belakang" class="image-preview"> <!-- Opsi baru untuk ganti background -->
+                {% elif process_type == 'restore_image' %}
+                <img src="{{ url_for('static', filename='restored_image.jpg') }}" alt="Restorasi Citra Lama" class="image-preview">
+                {% elif process_type == 'enhance_image' %}
+                <img src="{{ url_for('static', filename='enhanced_image.jpg') }}" alt="Peningkatan Citra" class="image-preview">
                 {% endif %}
             </div>
         </div>
