@@ -38,6 +38,12 @@
                 <img src="{{ url_for('static', filename='restored_image.jpg') }}" alt="Restorasi Citra Lama" class="image-preview">
                 {% elif process_type == 'enhance_image' %}
                 <img src="{{ url_for('static', filename='enhanced_image.jpg') }}" alt="Peningkatan Citra" class="image-preview">
+                {% elif process_type == 'detect_edges_morphological_gradient' %}
+                <img src="{{ url_for('static', filename='gradient_image.jpg') }}" alt="Morphological Gradient" class="image-preview">
+                {% elif process_type == 'apply_closing' %}
+                <img src="{{ url_for('static', filename='closing_image.jpg') }}" alt="closing" class="image-preview">
+                {% elif process_type == 'apply_opening' %}
+                <img src="{{ url_for('static', filename='opening_image.jpg') }}" alt="opening" class="image-preview">
                 {% endif %}
             </div>
         </div>

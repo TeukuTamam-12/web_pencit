@@ -72,6 +72,15 @@ def upload_image():
         elif process_type == 'enhance_image':
             output_path = 'static/enhanced_image.jpg'
             enhance_image(filepath, output_path)
+        elif process_type == 'edge_detection_morphological_gradient':
+            output_path = 'static/gradient_image.jpg'
+            detect_edges_morphological_gradient(filepath, output_path) 
+        elif process_type == 'closing':
+            output_path = 'static/closing_image.jpg'
+            apply_closing(filepath, output_path)
+        elif process_type == 'opening':
+            output_path = 'static/opening_image.jpg'
+            apply_opening(filepath, output_path)    
 
         # Redirect untuk menampilkan hasil
         return render_template('result.html', image_file=filename, process_type=process_type)
@@ -296,5 +305,60 @@ def enhance_image(image_path, output_path, kernel_size=5, sharpening_strength=1.
     # Simpan citra hasil enhancement
     cv2.imwrite(output_path, enhanced)
     print(f"Citra hasil enhancement disimpan sebagai {output_path}")
+
+def detect_edges_morphological_gradient(image_path, output_path, kernel_size=5):
+    # Baca citra sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Langkah 1: Definisikan kernel (elemen struktural) untuk operasi morfologi
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Langkah 2: Terapkan operasi dilasi
+    dilated = cv2.dilate(image, kernel)
+
+    # Langkah 3: Terapkan operasi erosi
+    eroded = cv2.erode(image, kernel)
+
+    # Langkah 4: Hitung morphological gradient (selisih antara dilasi dan erosi)
+    gradient = cv2.subtract(dilated, eroded)
+
+    # Simpan citra hasil deteksi tepi
+    cv2.imwrite(output_path, gradient)
+    print(f"Deteksi tepi dengan morphological gradient disimpan sebagai {output_path}")
+
+def apply_closing(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi closing
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi closing
+    closing_image = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, closing_image)
+    print(f"Gambar hasil closing disimpan sebagai {output_path}")
+
+def apply_opening(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi opening
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi opening
+    opening_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, opening_image)
+    print(f"Gambar hasil opening disimpan sebagai {output_path}")
+
 if __name__ == "__main__":
     app.run(debug=True)
