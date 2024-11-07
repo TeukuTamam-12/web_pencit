@@ -41,9 +41,9 @@
                 {% elif process_type == 'detect_edges_morphological_gradient' %}
                 <img src="{{ url_for('static', filename='gradient_image.jpg') }}" alt="Morphological Gradient" class="image-preview">
                 {% elif process_type == 'apply_closing' %}
-                <img src="{{ url_for('static', filename='closing_image.jpg') }}" alt="closing" class="image-preview">
+                <img src="{{ url_for('static', filename='closing_image.jpg') }}" alt="Closing" class="image-preview">
                 {% elif process_type == 'apply_opening' %}
-                <img src="{{ url_for('static', filename='opening_image.jpg') }}" alt="opening" class="image-preview">
+                <img src="{{ url_for('static', filename='opening_image.jpg') }}" alt="Opening" class="image-preview">
                 {% endif %}
             </div>
         </div>
