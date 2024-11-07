@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
 from matplotlib import pyplot as plt
+from scipy.signal import convolve2d
 
 app = Flask(__name__)
 
@@ -65,6 +66,36 @@ def upload_image():
             output_path = 'static/background_changed.jpg'
             rect = (50, 50, 450, 290)  # Rect harus disesuaikan untuk setiap gambar
             change_background_grabcut(filepath, background_filepath, rect, output_path)
+        elif process_type == 'restore_image':
+            output_path = 'static/restored_image.jpg'
+            restore_image(filepath, output_path)
+        elif process_type == 'enhance_image':
+            output_path = 'static/enhanced_image.jpg'
+            enhance_image(filepath, output_path)
+        elif process_type == 'dilation_image':
+            output_path = 'static/dilated_image.jpg'
+            dilation(filepath, output_path)
+        elif process_type == 'erosion_image':
+            output_path = 'static/eroded_image.jpg'
+            erosion(filepath, output_path)
+        elif process_type == 'opening_image':
+            output_path = 'static/opening_out.jpg'
+            apply_opening(filepath, output_path)
+        elif process_type == 'closing_image':
+            output_path = 'static/closing_out.jpg'
+            apply_closing(filepath, output_path)
+        elif process_type == 'morpho_image':
+            output_path = 'static/morpho_out.jpg'
+            detect_edges_morphological_gradient(filepath, output_path)
+        elif process_type == 'nearest_neighbor_image':
+            output_path = 'static/nearest_neighbor_out.jpg'
+            nearest_neighbor_interpolation(filepath, output_path)
+        elif process_type == 'bilinear_image':
+            output_path = 'static/bilinear_out.jpg'
+            bilinear_interpolation(filepath, output_path)
+        elif process_type == 'bicubic_image':
+            output_path = 'static/bicubic_out.jpg'
+            bicubic_interpolation(filepath, output_path)
 
         # Redirect untuk menampilkan hasil
         return render_template('result.html', image_file=filename, process_type=process_type)
@@ -239,5 +270,278 @@ def change_background_grabcut(image_path, background_path, rect, output_path):
     # Save the resulting image
     cv2.imwrite(output_path, result)
 
+def restore_image(image_path, output_path, kernel_size=5):
+    # Baca citra menggunakan OpenCV
+    image = cv2.imread(image_path)
+    
+    # Dapatkan dimensi citra
+    (h, w) = image.shape[:2]
+    
+    # Konversi ke grayscale jika citra berwarna
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    
+    # Terapkan filter median untuk mengurangi noise
+    restored = cv2.medianBlur(gray, kernel_size)
+    
+    # Normalisasi citra hasil restorasi untuk visualisasi yang lebih baik
+    restored = cv2.normalize(restored, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Simpan citra hasil restorasi
+    cv2.imwrite(output_path, restored)
+    print(f"Citra hasil restorasi disimpan sebagai {output_path}")
+
+def enhance_image(image_path, output_path, kernel_size=5, sharpening_strength=1.0):
+    # Baca citra sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    
+    # Langkah 1: Deblurring menggunakan filter Wiener
+    psf = np.ones((kernel_size, kernel_size)) / (kernel_size * kernel_size)
+    deblurred = cv2.filter2D(image, -1, psf)
+    noise = 10
+    deblurred = cv2.addWeighted(image, 1.0 + sharpening_strength, deblurred, -sharpening_strength, noise)
+    
+    # Langkah 2: Peningkatan ketajaman menggunakan Unsharp Masking
+    gaussian = cv2.GaussianBlur(deblurred, (0, 0), 2.0)
+    sharpened = cv2.addWeighted(deblurred, 1 + sharpening_strength, gaussian, -sharpening_strength, 0)
+    
+    # Langkah 3: Peningkatan kontras menggunakan CLAHE
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    enhanced = clahe.apply(sharpened)
+    
+    # Langkah 4: Reduksi noise menggunakan Non-local Means Denoising
+    enhanced = cv2.fastNlMeansDenoising(enhanced, None, 10, 7, 21)
+    
+    # Normalisasi hasil akhir
+    enhanced = cv2.normalize(enhanced, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Simpan citra hasil enhancement
+    cv2.imwrite(output_path, enhanced)
+    print(f"Citra hasil enhancement disimpan sebagai {output_path}")
+
+def dilation(image_path, output_path):
+    # Memuat gambar dalam format grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Terapkan threshold untuk mengubah gambar menjadi biner
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi dilation (misalnya, matriks 5x5 ones)
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Lakukan operasi dilation
+    dilated_image = cv2.dilate(binary_image, kernel, iterations=1)
+
+    # Simpan gambar hasil erosi
+    cv2.imwrite(output_path, dilated_image)
+    print(f"Blurred face image saved as {output_path}")
+
+def erosion(image_path, output_path):
+    # Memuat gambar dalam format grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Terapkan threshold untuk mengubah gambar menjadi biner
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi erosion (misalnya, matriks 5x5 ones)
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Lakukan operasi erosion
+    eroded_image = cv2.erode(binary_image, kernel, iterations=1)
+
+    # Simpan gambar hasil erosi
+    cv2.imwrite(output_path, eroded_image)
+
+def apply_opening(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi opening
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi opening
+    opening_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, opening_image)
+    print(f"Gambar hasil opening disimpan sebagai {output_path}")
+
+def apply_closing(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi closing
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi closing
+    closing_image = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, closing_image)
+    print(f"Gambar hasil closing disimpan sebagai {output_path}")
+
+
+def detect_edges_morphological_gradient(image_path, output_path, kernel_size=5):
+    # Baca citra sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Langkah 1: Definisikan kernel (elemen struktural) untuk operasi morfologi
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Langkah 2: Terapkan operasi dilasi
+    dilated = cv2.dilate(image, kernel)
+
+    # Langkah 3: Terapkan operasi erosi
+    eroded = cv2.erode(image, kernel)
+
+    # Langkah 4: Hitung morphological gradient (selisih antara dilasi dan erosi)
+    gradient = cv2.subtract(dilated, eroded)
+
+    # Simpan citra hasil deteksi tepi
+    cv2.imwrite(output_path, gradient)
+    print(f"Deteksi tepi dengan morphological gradient disimpan sebagai {output_path}")
+
+def nearest_neighbor_interpolation(image_path, output_path, scale_factor=2):
+    # Baca gambar
+    image = cv2.imread(image_path)
+
+    # Mendapatkan dimensi asli gambar
+    original_height, original_width = image.shape[:2]
+
+    # Tentukan dimensi baru berdasarkan faktor skala
+    new_height = int(original_height * scale_factor)
+    new_width = int(original_width * scale_factor)
+
+    # Buat array kosong untuk gambar hasil interpolasi
+    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+
+    # Lakukan interpolasi nearest neighbor
+    for y in range(new_height):
+        for x in range(new_width):
+            # Temukan piksel terdekat di gambar asli
+            original_y = int(y / scale_factor)
+            original_x = int(x / scale_factor)
+
+            # Salin nilai piksel dari gambar asli
+            interpolated_image[y, x] = image[original_y, original_x]
+
+    # Simpan hasil interpolasi
+    cv2.imwrite(output_path, interpolated_image)
+    print(f"Gambar hasil interpolasi nearest neighbor disimpan sebagai {output_path}")
+
+def bilinear_interpolation(image_path, output_path, scale_factor=2):
+    # Baca gambar
+    image = cv2.imread(image_path)
+    
+    # Mendapatkan dimensi asli gambar
+    original_height, original_width = image.shape[:2]
+    
+    # Tentukan dimensi baru berdasarkan faktor skala
+    new_height = int(original_height * scale_factor)
+    new_width = int(original_width * scale_factor)
+    
+    # Buat array kosong untuk gambar hasil interpolasi
+    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+    
+    # Lakukan interpolasi bilinear
+    for y in range(new_height):
+        for x in range(new_width):
+            # Hitung posisi piksel asli di gambar
+            original_x = x / scale_factor
+            original_y = y / scale_factor
+            
+            # Mendapatkan koordinat integer dari piksel terdekat
+            x0 = int(original_x)
+            y0 = int(original_y)
+            x1 = min(x0 + 1, original_width - 1)
+            y1 = min(y0 + 1, original_height - 1)
+            
+            # Mendapatkan intensitas piksel tetangga
+            Ia = image[y0, x0]
+            Ib = image[y0, x1]
+            Ic = image[y1, x0]
+            Id = image[y1, x1]
+            
+            # Menghitung jarak antara piksel asli dan tetangga
+            wa = (x1 - original_x) * (y1 - original_y)
+            wb = (original_x - x0) * (y1 - original_y)
+            wc = (x1 - original_x) * (original_y - y0)
+            wd = (original_x - x0) * (original_y - y0)
+            
+            # Hitung intensitas piksel baru dengan metode bilinear
+            interpolated_image[y, x] = (wa * Ia + wb * Ib + wc * Ic + wd * Id).astype(np.uint8)
+    
+    # Simpan hasil interpolasi
+    cv2.imwrite(output_path, interpolated_image)
+    print(f"Gambar hasil interpolasi bilinear disimpan sebagai {output_path}")
+
+def bicubic_interpolation(image_path, output_path, scale_factor=2):
+    # Baca gambar
+    image = cv2.imread(image_path)
+    
+    # Mendapatkan dimensi asli gambar
+    original_height, original_width = image.shape[:2]
+    
+    # Tentukan dimensi baru berdasarkan faktor skala
+    new_height = int(original_height * scale_factor)
+    new_width = int(original_width * scale_factor)
+    
+    # Buat array kosong untuk gambar hasil interpolasi
+    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+
+    def cubic_weight(t):
+        # Fungsi bobot untuk interpolasi bicubic
+        a = -0.5
+        t = abs(t)
+        if t <= 1:
+            return (a + 2) * (t ** 3) - (a + 3) * (t ** 2) + 1
+        elif t < 2:
+            return a * (t ** 3) - 5 * a * (t ** 2) + 8 * a * t - 4 * a
+        else:
+            return 0
+    
+    # Lakukan interpolasi bicubic
+    for y in range(new_height):
+        for x in range(new_width):
+            # Hitung posisi piksel asli di gambar
+            original_x = x / scale_factor
+            original_y = y / scale_factor
+            
+            # Mendapatkan koordinat integer terdekat di sekitar posisi asli
+            x0 = int(original_x)
+            y0 = int(original_y)
+            
+            # Inisialisasi intensitas untuk setiap kanal warna
+            pixel_value = np.zeros(3)
+            
+            # Loop untuk mendapatkan kontribusi dari piksel tetangga (16 piksel sekitar)
+            for m in range(-1, 3):
+                for n in range(-1, 3):
+                    xm = min(max(x0 + m, 0), original_width - 1)
+                    yn = min(max(y0 + n, 0), original_height - 1)
+                    
+                    # Mendapatkan bobot untuk piksel ini
+                    weight_x = cubic_weight(original_x - (x0 + m))
+                    weight_y = cubic_weight(original_y - (y0 + n))
+                    weight = weight_x * weight_y
+                    
+                    # Tambahkan kontribusi dari piksel tetangga yang dibobotkan
+                    pixel_value += weight * image[yn, xm]
+            
+            # Set nilai piksel baru dengan membatasi dalam rentang 0-255
+            interpolated_image[y, x] = np.clip(pixel_value, 0, 255)
+    
+    # Simpan hasil interpolasi
+    cv2.imwrite(output_path, interpolated_image)
+    print(f"Gambar hasil interpolasi bicubic disimpan sebagai {output_path}")
+    
 if __name__ == "__main__":
     app.run(debug=True)
