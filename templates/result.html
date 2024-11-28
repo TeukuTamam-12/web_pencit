@@ -1,58 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hasil Proses Gambar</title>
-    <!-- Link ke CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/main.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
 
-    <div class="container">
-        <h1 class="title">Hasil {{ process_type | capitalize }}</h1>
+  <body class="bg-gray-100">
+    ''
 
-        <div class="result-container">
-            <div class="image-section">
-                <p>Gambar asli:</p>
-                <img src="{{ url_for('static', filename='uploads/' + image_file) }}" alt="Gambar Asli" class="image-preview">
-            </div>
+    <!-- Kontainer utama untuk galeri -->
+    <div
+      class="container mx-auto p-6 bg-white shadow-md rounded-lg mt-8 max-w-5xl"
+    >
+      <h1 class="text-2xl font-bold text-center mb-4">
+        Hasil {{ process_type | capitalize }}
+      </h1>
 
-            <div class="histogram-section">
-                <p>Hasil:</p>
-                {% if process_type == 'grayscale' %}
-                <img src="{{ url_for('static', filename='gray_histo.jpg') }}" alt="Histogram Grayscale" class="image-histogram">
-                <p>Gambar Grayscale:</p>
-                <img src="{{ url_for('static', filename='gray_image.jpg') }}" alt="Gambar Grayscale" class="image-preview">
-                {% elif process_type == 'rgb' %}
-                <img src="{{ url_for('static', filename='rgb_histo.jpg') }}" alt="Histogram RGB" class="image-histogram">
-                {% elif process_type == 'face_detection' %}
-                <img src="{{ url_for('static', filename='face_detected.jpg') }}" alt="Deteksi Wajah" class="image-preview">
-                {% elif process_type == 'blur_faces' %}
-                <img src="{{ url_for('static', filename='blurred_faces.jpg') }}" alt="Blur Wajah" class="image-preview">
-                {% elif process_type == 'edge_detection' %}
-                <img src="{{ url_for('static', filename='edges_detected.jpg') }}" alt="Deteksi Tepi" class="image-preview">
-                {% elif process_type == 'change_background' %}
-                <img src="{{ url_for('static', filename='background_changed.jpg') }}" alt="Ganti Latar Belakang" class="image-preview"> <!-- Opsi baru untuk ganti background -->
-                {% elif process_type == 'restore_image' %}
-                <img src="{{ url_for('static', filename='restored_image.jpg') }}" alt="Restorasi Citra Lama" class="image-preview">
-                {% elif process_type == 'enhance_image' %}
-                <img src="{{ url_for('static', filename='enhanced_image.jpg') }}" alt="Peningkatan Citra" class="image-preview">
-                {% elif process_type == 'detect_edges_morphological_gradient' %}
-                <img src="{{ url_for('static', filename='gradient_image.jpg') }}" alt="Morphological Gradient" class="image-preview">
-                {% elif process_type == 'apply_closing' %}
-                <img src="{{ url_for('static', filename='closing_image.jpg') }}" alt="Closing" class="image-preview">
-                {% elif process_type == 'apply_opening' %}
-                <img src="{{ url_for('static', filename='opening_image.jpg') }}" alt="Opening" class="image-preview">
-                {% endif %}
-            </div>
+      <!-- Grid Tailwind untuk Galeri Gambar -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Gambar Asli -->
+        <div class="text-center">
+          <p class="text-lg font-semibold text-gray-700 mb-2">Gambar Asli:</p>
+          <img
+            src="{{ url_for('static', filename='uploads/' + image_file) }}"
+            alt="Gambar Asli"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
         </div>
 
-        <a href="/" class="btn">Kembali ke halaman upload</a>
+        <!-- Gambar Hasil Proses -->
+        <div class="text-center">
+          <p class="text-lg font-semibold text-gray-700 mb-2">Hasil Proses:</p>
+          {% if process_type == 'grayscale' %}
+          <img
+            src="{{ url_for('static', filename='gray_image.jpg') }}"
+            alt="Gambar Grayscale"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'rgb' %}
+          <img
+            src="{{ url_for('static', filename='rgb_histo.jpg') }}"
+            alt="Histogram RGB"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'face_detection' %}
+          <img
+            src="{{ url_for('static', filename='face_detected.jpg') }}"
+            alt="Deteksi Wajah"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'blur_faces' %}
+          <img
+            src="{{ url_for('static', filename='blurred_faces.jpg') }}"
+            alt="Blur Wajah"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'edge_detection' %}
+          <img
+            src="{{ url_for('static', filename='edges_detected.jpg') }}"
+            alt="Deteksi Tepi"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'change_background' %}
+          <img
+            src="{{ url_for('static', filename='background_changed.jpg') }}"
+            alt="Ganti Latar Belakang"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'restore_image' %}
+          <img
+            src="{{ url_for('static', filename='restored_image.jpg') }}"
+            alt="Restorasi Citra Lama"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'enhance_image' %}
+          <img
+            src="{{ url_for('static', filename='enhanced_image.jpg') }}"
+            alt="Peningkatan Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'dilation_image' %}
+          <img
+            src="{{ url_for('static', filename='dilated_image.jpg') }}"
+            alt="Pelebaran Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'erosion_image' %}
+          <img
+            src="{{ url_for('static', filename='eroded_image.jpg') }}"
+            alt="Pengikisan Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'opening_image' %}
+          <img
+            src="{{ url_for('static', filename='opening_out.jpg') }}"
+            alt="Opening Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'closing_image' %}
+          <img
+            src="{{ url_for('static', filename='closing_out.jpg') }}"
+            alt="Closing Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'morpho_image' %}
+          <img
+            src="{{ url_for('static', filename='morpho_out.jpg') }}"
+            alt="Morphological Gradient Citra"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'nearest_neighbor_image' %}
+          <img
+            src="{{ url_for('static', filename='nearest_neighbor_out.jpg') }}"
+            alt="Nearest Neighbor Interpolation"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'bilinear_image' %}
+          <img
+            src="{{ url_for('static', filename='bilinear_out.jpg') }}"
+            alt="Bilinear Interpolation"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+          {% elif process_type == 'bicubic_image' %}
+          <img
+            src="{{ url_for('static', filename='bicubic_out.jpg') }}"
+            alt="Bicubic Interpolation"
+            class="w-full h-96 object-cover border rounded-lg shadow-md"
+          />
+           {% elif process_type == 'chain_code' %}
+          <div class="mt-8 bg-gray-100 p-4 rounded shadow">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 text-center">
+              Hasil Chain Code
+            </h2>
+            <textarea
+              readonly
+              class="w-full h-64 p-4 border border-gray-300 rounded-md bg-gray-50"
+            >
+            {{ chain_code }}
+            </textarea>
+            <p class="text-sm text-gray-500 mt-2 text-center">
+              Array di atas adalah representasi chain code dari gambar.
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Tombol untuk kembali ke halaman utama -->
+      <div class="text-center mt-6">
+        <a
+          href="/"
+          class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-300"
+        >
+          Kembali ke halaman upload
+        </a>
+      </div>
     </div>
-
-    <!-- Link ke JavaScript -->
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-
-</body>
+  </body>
 </html>

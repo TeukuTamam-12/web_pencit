@@ -1,6 +1,7 @@
 // Menampilkan input latar belakang hanya jika opsi 'Ganti Latar Belakang' dipilih
 function toggleBackgroundInput() {
-    const processType = document.getElementById('process_type').value;
+    const processType = document.getElementsByName('process_type').value;
+    console.log(value);
     const backgroundInputContainer = document.getElementById('backgroundInputContainer');
     if (processType === 'change_background') {
         backgroundInputContainer.style.display = 'block';

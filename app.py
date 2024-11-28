@@ -26,12 +26,13 @@ def index():
 
 # Route untuk memproses upload dan generate histogram, deteksi wajah, blur wajah, deteksi tepi, atau ganti background
 @app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['POST'])
 def upload_image():
     if 'file' not in request.files:
         return redirect(request.url)
 
     file = request.files['file']
-    background_file = request.files.get('background')  # Optional background file
+    background_file = request.files.get('background')
     if file.filename == '':
         return redirect(request.url)
 
@@ -40,7 +41,6 @@ def upload_image():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # Jika background file juga diupload, simpan di folder uploads
         if background_file and background_file.filename != '':
             background_filename = secure_filename(background_file.filename)
             background_filepath = os.path.join(app.config['UPLOAD_FOLDER'], background_filename)
@@ -48,8 +48,21 @@ def upload_image():
         else:
             background_filepath = None
 
-        # Pilih tipe proses dari form (RGB, Grayscale, Deteksi Wajah, Blur Wajah, Deteksi Tepi, atau Ganti Background)
         process_type = request.form.get('process_type')
+
+        # Handle chain code separately
+        if process_type == 'chain_code':
+            chain_code_result = calculate_chain_code_from_image(cv2.imread(filepath))
+            if chain_code_result:
+                chain_code_str = '  '.join(map(str, chain_code_result))
+            else:
+                chain_code_str = "Tidak ada kontur yang ditemukan."
+            return render_template('result.html', 
+                                image_file=filename, 
+                                process_type=process_type, 
+                                chain_code=chain_code_str)
+
+        # Handle other image processing operations
         if process_type == 'grayscale':
             generate_grayscale_histogram(filepath)
         elif process_type == 'rgb':
@@ -57,34 +70,39 @@ def upload_image():
         elif process_type == 'face_detection':
             detect_faces_dnn(filepath)
         elif process_type == 'blur_faces':
-            output_path = 'static/blurred_faces.jpg'
-            blur_faces_dnn(filepath, output_path)
+            blur_faces_dnn(filepath, 'static/blurred_faces.jpg')
         elif process_type == 'edge_detection':
-            output_path = 'static/edges_detected.jpg'
-            edge_detection_dnn(filepath, output_path)
-        elif process_type == 'change_background' and background_filepath:
-            output_path = 'static/background_changed.jpg'
-            rect = (50, 50, 450, 290)  # Rect harus disesuaikan untuk setiap gambar
-            change_background_grabcut(filepath, background_filepath, rect, output_path)
+            edge_detection_dnn(filepath, 'static/edges_detected.jpg')
         elif process_type == 'restore_image':
-            output_path = 'static/restored_image.jpg'
-            restore_image(filepath, output_path)
+            restore_image(filepath, 'static/restored_image.jpg')
         elif process_type == 'enhance_image':
-            output_path = 'static/enhanced_image.jpg'
-            enhance_image(filepath, output_path)
-        elif process_type == 'edge_detection_morphological_gradient':
-            output_path = 'static/gradient_image.jpg'
-            detect_edges_morphological_gradient(filepath, output_path) 
-        elif process_type == 'closing':
-            output_path = 'static/closing_image.jpg'
-            apply_closing(filepath, output_path)
-        elif process_type == 'opening':
-            output_path = 'static/opening_image.jpg'
-            apply_opening(filepath, output_path)    
+            enhance_image(filepath, 'static/enhanced_image.jpg')
+        elif process_type == 'dilation_image':
+            dilation(filepath, 'static/dilated_image.jpg')
+        elif process_type == 'erosion_image':
+            erosion(filepath, 'static/eroded_image.jpg')
+        elif process_type == 'opening_image':
+            apply_opening(filepath, 'static/opening_out.jpg')
+        elif process_type == 'closing_image':
+            apply_closing(filepath, 'static/closing_out.jpg')
+        elif process_type == 'morpho_image':
+            detect_edges_morphological_gradient(filepath, 'static/morpho_out.jpg')
+        elif process_type == 'nearest_neighbor_image':
+            nearest_neighbor_interpolation(filepath, 'static/nearest_neighbor_out.jpg')
+        elif process_type == 'bilinear_image':
+            bilinear_interpolation(filepath, 'static/bilinear_out.jpg')
+        elif process_type == 'bicubic_image':
+            bicubic_interpolation(filepath, 'static/bicubic_out.jpg')
+        elif process_type == 'change_background' and background_filepath:
+            rect = (50, 50, 450, 290)
+            change_background_grabcut(filepath, background_filepath, rect, 'static/background_changed.jpg')
 
-        # Redirect untuk menampilkan hasil
-        return render_template('result.html', image_file=filename, process_type=process_type)
-    
+        return render_template('result.html', 
+                             image_file=filename, 
+                             process_type=process_type)
+
+    return redirect(request.url)
+           
 # Fungsi untuk deteksi tepi (Edge Detection)
 def edge_detection_dnn(image_path, output_path):
     # Load the pre-trained model for HED (Holistically-Nested Edge Detection)
@@ -306,6 +324,74 @@ def enhance_image(image_path, output_path, kernel_size=5, sharpening_strength=1.
     cv2.imwrite(output_path, enhanced)
     print(f"Citra hasil enhancement disimpan sebagai {output_path}")
 
+def dilation(image_path, output_path):
+    # Memuat gambar dalam format grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Terapkan threshold untuk mengubah gambar menjadi biner
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi dilation (misalnya, matriks 5x5 ones)
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Lakukan operasi dilation
+    dilated_image = cv2.dilate(binary_image, kernel, iterations=1)
+
+    # Simpan gambar hasil erosi
+    cv2.imwrite(output_path, dilated_image)
+    print(f"Blurred face image saved as {output_path}")
+
+def erosion(image_path, output_path):
+    # Memuat gambar dalam format grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Terapkan threshold untuk mengubah gambar menjadi biner
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi erosion (misalnya, matriks 5x5 ones)
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Lakukan operasi erosion
+    eroded_image = cv2.erode(binary_image, kernel, iterations=1)
+
+    # Simpan gambar hasil erosi
+    cv2.imwrite(output_path, eroded_image)
+
+def apply_opening(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi opening
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi opening
+    opening_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, opening_image)
+    print(f"Gambar hasil opening disimpan sebagai {output_path}")
+
+def apply_closing(image_path, output_path, kernel_size=5):
+    # Baca gambar sebagai grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Binarisasi gambar (thresholding)
+    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Definisikan kernel untuk operasi closing
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+    # Terapkan operasi closing
+    closing_image = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
+
+    # Simpan hasil
+    cv2.imwrite(output_path, closing_image)
+    print(f"Gambar hasil closing disimpan sebagai {output_path}")
+
+
 def detect_edges_morphological_gradient(image_path, output_path, kernel_size=5):
     # Baca citra sebagai grayscale
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -326,176 +412,102 @@ def detect_edges_morphological_gradient(image_path, output_path, kernel_size=5):
     cv2.imwrite(output_path, gradient)
     print(f"Deteksi tepi dengan morphological gradient disimpan sebagai {output_path}")
 
-def apply_closing(image_path, output_path, kernel_size=5):
-    # Baca gambar sebagai grayscale
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
-    # Binarisasi gambar (thresholding)
-    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-
-    # Definisikan kernel untuk operasi closing
-    kernel = np.ones((kernel_size, kernel_size), np.uint8)
-
-    # Terapkan operasi closing
-    closing_image = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
-
-    # Simpan hasil
-    cv2.imwrite(output_path, closing_image)
-    print(f"Gambar hasil closing disimpan sebagai {output_path}")
-
-def apply_opening(image_path, output_path, kernel_size=5):
-    # Baca gambar sebagai grayscale
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
-    # Binarisasi gambar (thresholding)
-    _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-
-    # Definisikan kernel untuk operasi opening
-    kernel = np.ones((kernel_size, kernel_size), np.uint8)
-
-    # Terapkan operasi opening
-    opening_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
-
-    # Simpan hasil
-    cv2.imwrite(output_path, opening_image)
-    print(f"Gambar hasil opening disimpan sebagai {output_path}")
-
 def nearest_neighbor_interpolation(image_path, output_path, scale_factor=2):
     # Baca gambar
     image = cv2.imread(image_path)
-
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
-
+    
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
+    
     # Lakukan interpolasi nearest neighbor
-    for y in range(new_height):
-        for x in range(new_width):
-            # Temukan piksel terdekat di gambar asli
-            original_y = int(y / scale_factor)
-            original_x = int(x / scale_factor)
-
-            # Salin nilai piksel dari gambar asli
-            interpolated_image[y, x] = image[original_y, original_x]
-
-    # Simpan hasil interpolasi
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+    
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi nearest neighbor disimpan sebagai {output_path}")
 
-
-def bilinear_interpolation(image_path, output_path, scale_factor=2):
+def bilinear_interpolation(image_path, output_path, scale_factor=5):
     # Baca gambar
     image = cv2.imread(image_path)
     
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-    
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-    
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
     
     # Lakukan interpolasi bilinear
-    for y in range(new_height):
-        for x in range(new_width):
-            # Hitung posisi piksel asli di gambar
-            original_x = x / scale_factor
-            original_y = y / scale_factor
-            
-            # Mendapatkan koordinat integer dari piksel terdekat
-            x0 = int(original_x)
-            y0 = int(original_y)
-            x1 = min(x0 + 1, original_width - 1)
-            y1 = min(y0 + 1, original_height - 1)
-            
-            # Mendapatkan intensitas piksel tetangga
-            Ia = image[y0, x0]
-            Ib = image[y0, x1]
-            Ic = image[y1, x0]
-            Id = image[y1, x1]
-            
-            # Menghitung jarak antara piksel asli dan tetangga
-            wa = (x1 - original_x) * (y1 - original_y)
-            wb = (original_x - x0) * (y1 - original_y)
-            wc = (x1 - original_x) * (original_y - y0)
-            wd = (original_x - x0) * (original_y - y0)
-            
-            # Hitung intensitas piksel baru dengan metode bilinear
-            interpolated_image[y, x] = (wa * Ia + wb * Ib + wc * Ic + wd * Id).astype(np.uint8)
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
     
-    # Simpan hasil interpolasi
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi bilinear disimpan sebagai {output_path}")
 
-def bicubic_interpolation(image_path, output_path, scale_factor=2):
+def bicubic_interpolation(image_path, output_path, scale_factor=10):
     # Baca gambar
     image = cv2.imread(image_path)
     
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-    
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-    
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
-
-    def cubic_weight(t):
-        # Fungsi bobot untuk interpolasi bicubic
-        a = -0.5
-        t = abs(t)
-        if t <= 1:
-            return (a + 2) * (t ** 3) - (a + 3) * (t ** 2) + 1
-        elif t < 2:
-            return a * (t ** 3) - 5 * a * (t ** 2) + 8 * a * t - 4 * a
-        else:
-            return 0
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
     
     # Lakukan interpolasi bicubic
-    for y in range(new_height):
-        for x in range(new_width):
-            # Hitung posisi piksel asli di gambar
-            original_x = x / scale_factor
-            original_y = y / scale_factor
-            
-            # Mendapatkan koordinat integer terdekat di sekitar posisi asli
-            x0 = int(original_x)
-            y0 = int(original_y)
-            
-            # Inisialisasi intensitas untuk setiap kanal warna
-            pixel_value = np.zeros(3)
-            
-            # Loop untuk mendapatkan kontribusi dari piksel tetangga (16 piksel sekitar)
-            for m in range(-1, 3):
-                for n in range(-1, 3):
-                    xm = min(max(x0 + m, 0), original_width - 1)
-                    yn = min(max(y0 + n, 0), original_height - 1)
-                    
-                    # Mendapatkan bobot untuk piksel ini
-                    weight_x = cubic_weight(original_x - (x0 + m))
-                    weight_y = cubic_weight(original_y - (y0 + n))
-                    weight = weight_x * weight_y
-                    
-                    # Tambahkan kontribusi dari piksel tetangga yang dibobotkan
-                    pixel_value += weight * image[yn, xm]
-            
-            # Set nilai piksel baru dengan membatasi dalam rentang 0-255
-            interpolated_image[y, x] = np.clip(pixel_value, 0, 255)
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
     
-    # Simpan hasil interpolasi
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi bicubic disimpan sebagai {output_path}")
 
 
+# Code list khusus dengan urutan berbeda
+codeList = [5, 6, 7, 4, -1, 0, 3, 2, 1]  # Dengan nilai tidak valid (-1)
+
+
+def getChainCode(dx, dy):
+    hashKey = (3 * dy + dx + 4) % len(codeList)
+    chainCode = codeList[hashKey]
+    if chainCode < 0:
+        chainCode += len(codeList)
+    return chainCode
+
+def generate_chain_code(ListOfPoints):
+    chainCode = []
+    for i in range(len(ListOfPoints) - 1):
+        a = ListOfPoints[i]
+        b = ListOfPoints[i + 1]
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        chainCode.append(getChainCode(dx, dy))
+    return chainCode
+
+def calculate_chain_code_from_image(image, visualize=False):
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Apply adaptive thresholding for better binarization
+    binary_image = cv2.adaptiveThreshold(
+        gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
+    )
+    
+    # Find contours with more detail (no approximation)
+    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    if contours:
+        # Select the largest contour (assumes it's the object of interest)
+        largest_contour = max(contours, key=cv2.contourArea)
+        
+        # Optional: Visualize contours
+        if visualize:
+            contour_image = image.copy()
+            cv2.drawContours(contour_image, [largest_contour], -1, (0, 255, 0), 2)
+            cv2.imshow("Contours", contour_image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        
+        # Generate chain code from the largest contour
+        if largest_contour.size > 0:
+            chain_code = generate_chain_code([point[0] for point in largest_contour])
+            return chain_code
+    return None
 
 if __name__ == "__main__":
     app.run(debug=True)
