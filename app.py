@@ -412,134 +412,45 @@ def detect_edges_morphological_gradient(image_path, output_path, kernel_size=5):
 def nearest_neighbor_interpolation(image_path, output_path, scale_factor=2):
     # Baca gambar
     image = cv2.imread(image_path)
-
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
-
+    
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
+    
     # Lakukan interpolasi nearest neighbor
-    for y in range(new_height):
-        for x in range(new_width):
-            # Temukan piksel terdekat di gambar asli
-            original_y = int(y / scale_factor)
-            original_x = int(x / scale_factor)
-
-            # Salin nilai piksel dari gambar asli
-            interpolated_image[y, x] = image[original_y, original_x]
-
-    # Simpan hasil interpolasi
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+    
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi nearest neighbor disimpan sebagai {output_path}")
 
-def bilinear_interpolation(image_path, output_path, scale_factor=2):
+def bilinear_interpolation(image_path, output_path, scale_factor=5):
     # Baca gambar
     image = cv2.imread(image_path)
     
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-    
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-    
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
     
     # Lakukan interpolasi bilinear
-    for y in range(new_height):
-        for x in range(new_width):
-            # Hitung posisi piksel asli di gambar
-            original_x = x / scale_factor
-            original_y = y / scale_factor
-            
-            # Mendapatkan koordinat integer dari piksel terdekat
-            x0 = int(original_x)
-            y0 = int(original_y)
-            x1 = min(x0 + 1, original_width - 1)
-            y1 = min(y0 + 1, original_height - 1)
-            
-            # Mendapatkan intensitas piksel tetangga
-            Ia = image[y0, x0]
-            Ib = image[y0, x1]
-            Ic = image[y1, x0]
-            Id = image[y1, x1]
-            
-            # Menghitung jarak antara piksel asli dan tetangga
-            wa = (x1 - original_x) * (y1 - original_y)
-            wb = (original_x - x0) * (y1 - original_y)
-            wc = (x1 - original_x) * (original_y - y0)
-            wd = (original_x - x0) * (original_y - y0)
-            
-            # Hitung intensitas piksel baru dengan metode bilinear
-            interpolated_image[y, x] = (wa * Ia + wb * Ib + wc * Ic + wd * Id).astype(np.uint8)
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
     
-    # Simpan hasil interpolasi
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi bilinear disimpan sebagai {output_path}")
 
-def bicubic_interpolation(image_path, output_path, scale_factor=2):
+def bicubic_interpolation(image_path, output_path, scale_factor=10):
     # Baca gambar
     image = cv2.imread(image_path)
     
-    # Mendapatkan dimensi asli gambar
-    original_height, original_width = image.shape[:2]
-    
-    # Tentukan dimensi baru berdasarkan faktor skala
-    new_height = int(original_height * scale_factor)
-    new_width = int(original_width * scale_factor)
-    
-    # Buat array kosong untuk gambar hasil interpolasi
-    interpolated_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
-
-    def cubic_weight(t):
-        # Fungsi bobot untuk interpolasi bicubic
-        a = -0.5
-        t = abs(t)
-        if t <= 1:
-            return (a + 2) * (t ** 3) - (a + 3) * (t ** 2) + 1
-        elif t < 2:
-            return a * (t ** 3) - 5 * a * (t ** 2) + 8 * a * t - 4 * a
-        else:
-            return 0
+    # Hitung dimensi baru
+    new_height = int(image.shape[0] * scale_factor)
+    new_width = int(image.shape[1] * scale_factor)
     
     # Lakukan interpolasi bicubic
-    for y in range(new_height):
-        for x in range(new_width):
-            # Hitung posisi piksel asli di gambar
-            original_x = x / scale_factor
-            original_y = y / scale_factor
-            
-            # Mendapatkan koordinat integer terdekat di sekitar posisi asli
-            x0 = int(original_x)
-            y0 = int(original_y)
-            
-            # Inisialisasi intensitas untuk setiap kanal warna
-            pixel_value = np.zeros(3)
-            
-            # Loop untuk mendapatkan kontribusi dari piksel tetangga (16 piksel sekitar)
-            for m in range(-1, 3):
-                for n in range(-1, 3):
-                    xm = min(max(x0 + m, 0), original_width - 1)
-                    yn = min(max(y0 + n, 0), original_height - 1)
-                    
-                    # Mendapatkan bobot untuk piksel ini
-                    weight_x = cubic_weight(original_x - (x0 + m))
-                    weight_y = cubic_weight(original_y - (y0 + n))
-                    weight = weight_x * weight_y
-                    
-                    # Tambahkan kontribusi dari piksel tetangga yang dibobotkan
-                    pixel_value += weight * image[yn, xm]
-            
-            # Set nilai piksel baru dengan membatasi dalam rentang 0-255
-            interpolated_image[y, x] = np.clip(pixel_value, 0, 255)
+    interpolated_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
     
-    # Simpan hasil interpolasi
+    # Simpan hasil
     cv2.imwrite(output_path, interpolated_image)
     print(f"Gambar hasil interpolasi bicubic disimpan sebagai {output_path}")
     
